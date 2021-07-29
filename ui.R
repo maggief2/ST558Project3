@@ -44,26 +44,68 @@ shinyUI(
       )),
       
       tabPanel("Data Exploration", fluidPage(
-        #Application title
-        titlePanel("Old Faithful Geyser Data"),
-        
-        #Sidebar with a slider input for number of bins
-        sidebarLayout(
-          sidebarPanel(
-            sliderInput("bins", "Number of bins:", min = 1,max = 50, value = 30)
-          ),
-          #table
-          mainPanel(plotOutput("distPlot"))
-        )
-      )),
+                 #Title
+                 titlePanel("Data Exploration"),
+                 
+                 #Sidebar with a slider input for number of bins
+                 sidebarLayout(
+                   sidebarPanel(
+                     h3("Select the variable of interest"),
+                     
+                     radioButtons("qualquant", h4("What kind of variable?"), 
+                                  c("Qualitative", "Quantitative")),
+                     
+                     conditionalPanel(
+                       condition = "input.qualquant == 'Qualitative'",
+                       selectInput("qual", "Variable", 
+                                   list("Hour", "Seasons", "Holiday", "FunctioningDay")),
+                       selectInput("qualplot", "Type of Plot", c("Bar graph", "Box plot")),
+                       selectInput("qualsum", "Type of Summary", c("Frequency"))
+                     ),
+
+                     conditionalPanel(
+                       condition = "input.qualquant == 'Quantitative'",
+                       selectInput("quant", "Variable", 
+                                   list("Temperature", "Humidity", "WindSpeed", "Visibility", 
+                                        "DewPoint", "SolarRadiation", "Rainfall", "Snowfall")),
+                       selectInput("quantplot", "Type of Plot", c("Histogram", "Scatterplot")),
+                       selectInput("quantsum", "Type of Summary", 
+                                   c("Five Number Summary", "Mean and Standard Deviation",
+                                     "Correlation with Count"))
+                     ),
+                     
+                     #Download Plot
+                     downloadButton('downloadPlot', 'Download Plot')
+                   ),
+                   # Show outputs
+                   mainPanel(
+                     plotOutput("plot"),
+                     tableOutput("sum")
+                   )
+                 )
+                 )),
       
       tabPanel("Modeling", tabsetPanel(
-        tabPanel("Modeling Info"),
+        tabPanel("Modeling Info",
+                 h3("Linear Regression Model"),
+                 h4("explain benefits/drawbacks"),
+                 
+                 h3("Regression Tree"),
+                 h4("explain benefits/drawbacks"),
+                 
+                 h3("Random Forest Model"),
+                 h4("explain benefits/drawbacks")
+                 ),
         
-        tabPanel("Model Fitting"),
+        tabPanel("Model Fitting",
+                 h4("Step 1. Select the proportion of the data that will be randomly sampled for the training data set"),
+                 sliderInput("split", "Select the Proportion",
+                             min = 0.1, max = 0.9, value = 0.5, step = 0.01),
+                 mainPanel(
+                   textOutput("sample")
+                 )
+                 ),
         
         tabPanel("Prediction")
-      )
-      )
-    )
-)
+      ))
+))
