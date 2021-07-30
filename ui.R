@@ -1,4 +1,5 @@
 library(shiny)
+library(plotly)
 
 # Define UI for application that draws a histogram
 shinyUI(
@@ -10,12 +11,14 @@ shinyUI(
                #Purpose of App
                h3("Purpose of the App"),
                h4("This app will allow the user to explore and model the Seoul bike sharing demand."),
+               br(),
                
                #Discussion of data and its source
                h3("The Data"),
                h4("The data comes from the UCI machine learning repository and was labeled ",
                a("Seoul Bike Sharing Demand.", href = "https://archive.ics.uci.edu/ml/datasets/Seoul+Bike+Sharing+Demand"), " The variable of interest is the Rented Bike Count, because it is important that the bikes are available and accessible to the public at the right time to reduce waiting time. The remaining 13 varables in this dataset are: Date, Hour, Temperature, Humidity, Wind speed, Visibility, Dew Point Temperature, Solar Radiation, Rainfall, Snowfall, Seasons, Holiday, and Functioning Day."
                ),
+               br(),
                
                #Purpose of each tab
                h3("Tabs"),
@@ -25,9 +28,6 @@ shinyUI(
       ),
       
       tabPanel("Data", fluidPage(
-        #Title
-        titlePanel("Data"),
-        
         #filter rows by season
         selectInput("season", "Select a season or all seasons", 
                     list("All", "Winter", "Spring", "Summer", "Autumn")),
@@ -44,9 +44,6 @@ shinyUI(
       )),
       
       tabPanel("Data Exploration", fluidPage(
-                 #Title
-                 titlePanel("Data Exploration"),
-                 
                  #Sidebar with a slider input for number of bins
                  sidebarLayout(
                    sidebarPanel(
@@ -79,7 +76,8 @@ shinyUI(
                    ),
                    # Show outputs
                    mainPanel(
-                     plotOutput("plot"),
+                     #plotOutput("plot"),
+                     plotlyOutput("plot"),
                      tableOutput("sum")
                    )
                  )
@@ -101,11 +99,117 @@ shinyUI(
                  h4("Step 1. Select the proportion of the data that will be randomly sampled for the training data set"),
                  sliderInput("split", "Select the Proportion",
                              min = 0.1, max = 0.9, value = 0.5, step = 0.01),
-                 mainPanel(
-                   textOutput("sample")
-                 )
+                 textOutput("sample"),
+                 br(),
+                 
+                 h4("Step 2. Select variables for the models"),
+                 checkboxGroupInput("mlr", "Multiple Linear Regression Variable(s):",
+                                    c("Hour", "Temperature", "Humidity", "WindSpeed", 
+                                      "Visibility", "DewPoint", "SolarRadiation", "Rainfall", 
+                                      "Snowfall", "Seasons", "Holiday", "FunctioningDay"), 
+                                    inline = TRUE),
+                 checkboxGroupInput("tree", "Regression Tree Variable(s):",
+                                    c("Hour", "Temperature", "Humidity", "WindSpeed", 
+                                      "Visibility", "DewPoint", "SolarRadiation", "Rainfall", 
+                                      "Snowfall", "Seasons", "Holiday", "FunctioningDay"), 
+                                    inline = TRUE),
+                 checkboxGroupInput("rf", "Random Forest Variable(s):",
+                                    c("Hour", "Temperature", "Humidity", "WindSpeed", 
+                                      "Visibility", "DewPoint", "SolarRadiation", "Rainfall", 
+                                      "Snowfall", "Seasons", "Holiday", "FunctioningDay"), 
+                                    inline = TRUE),
+                 br(),
+                 
+                 h4("Step 3. Fit the models and compare"),
+                 actionButton("fit", "Press to fit the three models"),
+                 
+                 h5(strong("Multiple Linear Regression:")),
+                 verbatimTextOutput("modmlrsum"),
+                 textOutput("modmlr"),
+                 
+                 h5(strong("Regression Tree:")),
+                 verbatimTextOutput("modrtsum"),
+                 textOutput("modrt"),
+                 
+                 h5(strong("Random Forest:")),
+                 verbatimTextOutput("modrfsum"),
+                 textOutput("modrf")
                  ),
         
-        tabPanel("Prediction")
+        tabPanel("Prediction",
+                 radioButtons("model", h4("Model selection"),
+                              c("Multiple Linear Regression", "Regression Tree", "Random Forest"),
+                              inline = TRUE),
+                 checkboxGroupInput("predvars", "Select Variable(s):",
+                                    c("Hour", "Temperature", "Humidity", "WindSpeed", 
+                                      "Visibility", "DewPoint", "SolarRadiation", "Rainfall", 
+                                      "Snowfall", "Seasons", "Holiday", "FunctioningDay"), 
+                                    inline = TRUE),
+                 conditionalPanel(
+                   condition = "input.predvars.includes('Hour')",
+                   selectInput("hr", "Hour",
+                               c("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", 
+                                 "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"))
+                 ),
+                 conditionalPanel(
+                   condition = "input.predvars.includes('Temperature')",
+                   numericInput("temp", "Temperature (Celsius)", 
+                               min = -17.8, max = 39.4, value = 0, step = 0.1)
+                 ),
+                 conditionalPanel(
+                   condition = "input.predvars.includes('Humidity')",
+                   numericInput("humid", "Humidity (%)", 
+                                min = 0, max = 98, value = 0, step = 1)
+                 ),
+                 conditionalPanel(
+                   condition = "input.predvars.includes('WindSpeed')",
+                   numericInput("wind", "Wind Speed (m/s)", 
+                                min = 0, max = 7.4, value = 0, step = 0.1)
+                 ),
+                 conditionalPanel(
+                   condition = "input.predvars.includes('Visibility')",
+                   sliderInput("vis", "Visibility (10m)", 
+                                min = 27, max = 2000, value = 2000, step = 1)
+                 ),
+                 conditionalPanel(
+                   condition = "input.predvars.includes('DewPoint')",
+                   numericInput("dew", "Dew point temperature (Celsius)", 
+                               min = -30.6, max = 27.2, value = 0, step = 0.1)
+                 ),
+                 conditionalPanel(
+                   condition = "input.predvars.includes('SolarRadiation')",
+                   numericInput("solar", "Solar Radiation (MJ/m2)", 
+                                min = -30.6, max = 27.2, value = 0, step = 0.1)
+                 ),
+                 conditionalPanel(
+                   condition = "input.predvars.includes('Rainfall')",
+                   numericInput("rain", "Rainfall (mm)", 
+                                min = 0, max = 35, value = 0, step = 0.1)
+                 ),
+                 conditionalPanel(
+                   condition = "input.predvars.includes('Snowfall')",
+                   numericInput("snow", "Snowfall (cm)", 
+                                min = 0, max = 8.8, value = 0, step = 0.1)
+                 ),
+                 conditionalPanel(
+                   condition = "input.predvars.includes('Seasons')",
+                   selectInput("season", "Season",
+                               c("Winter", "Spring", "Summer", "Autumn"))
+                 ),
+                 conditionalPanel(
+                   condition = "input.predvars.includes('Holiday')",
+                   selectInput("holiday", "Holiday",
+                               c("Holiday", "No Holiday"))
+                 ),
+                 conditionalPanel(
+                   condition = "input.predvars.includes('FunctioningDay')",
+                   selectInput("day", "Functioning Day",
+                               c("Yes", "No"))
+                 ),
+                 
+                 #textOutput("prediction")
+                 actionButton("predict", "Predict"),
+                 verbatimTextOutput("prediction")
+        )
       ))
 ))

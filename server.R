@@ -1,11 +1,15 @@
-library(tidyverse)
+
+library(caret)
 library(DT)
+library(plotly)
+library(shiny)
+library(tidyverse)
+
 SeoulBike <- read_csv("SeoulBikeData.csv")
 colnames(SeoulBike) <- c("Date", "Count", "Hour", "Temperature", "Humidity",
                          "WindSpeed", "Visibility", "DewPoint", "SolarRadiation", "Rainfall", 
                          "Snowfall", "Seasons", "Holiday", "FunctioningDay")
 SeoulBike$Hour <- as.factor(SeoulBike$Hour)
-library(shiny)
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
@@ -62,7 +66,7 @@ shinyServer(function(input, output, session) {
         g + geom_bar()
       } else {
         #Box plot
-        g + geom_boxplot(aes(y = Count))
+        g + geom_boxplot(aes(y = Count)) 
       }
       #For quantitative
     } else {
@@ -76,7 +80,7 @@ shinyServer(function(input, output, session) {
     }
   })
   
-  output$plot <- renderPlot({
+  output$plot <- renderPlotly({
     graph()
   })
   
@@ -117,15 +121,114 @@ shinyServer(function(input, output, session) {
   })
   
   #Modeling page 
-  #Model Fitting
+  #Model Fitting - Training and Testing sets
   n <- reactive({round(nrow(SeoulBike)*input$split)})
   trainIndex <- reactive({sample(nrow(SeoulBike), n())})
-  train <- reactive({SeoulBike[trainIndex(),]})
-  test <- reactive({SeoulBike[-trainIndex(),]})
+  trainset <- reactive({SeoulBike[trainIndex(),]})
+  testset <- reactive({SeoulBike[-trainIndex(),]})
   
   output$sample <- renderText({
-    
-    #h4("There are ", nrow(train()), " observations in the training set and ", nrow(test()), " in the testing set.")
+    paste0("There are ", nrow(trainset()), " observations in the training set and ", nrow(testset()), " in the testing set.")
   })
   
+  #Model Fitting - Model Fitting MLR
+  mlr <- eventReactive(input$fit, {
+    trainset() %>% select(Count, input$mlr)
+  })
+  
+  #Multiple Linear Regression
+  modmlr <- reactive({
+    train(Count ~ .,
+          data = mlr(),
+          method = "lm",
+          preProcess = c("center","scale"),
+          trControl = trainControl(method = "cv", number = 10))
+  })
+  
+  output$modmlrsum <- renderPrint({
+    summary(modmlr())
+  })
+  
+  output$modmlr <- renderText({
+    #training MSE
+    trainpred <- predict(modmlr(), newdata = trainset())
+    trainmse <- postResample(trainpred, trainset()$Count)[[1]]
+    #testing MSE
+    testpred <- predict(modmlr(), newdata = testset())
+    testmse <- postResample(testpred, obs = testset()$Count)[[1]]
+    
+    paste0("The training set RMSE is ", round(trainmse,2) , " and the testing set RMSE is ", round(testmse,2))
+  })
+  
+  #Model Fitting - Model Fitting Reg Tree
+  rtree <- eventReactive(input$fit, {
+    trainset() %>% select(Count, input$tree)
+  })
+  
+  #Regression Tree
+  regTree <- reactive({
+    train(Count ~ .,
+          data = rtree(),
+          method = "rpart",
+          preProcess = c("center", "scale"),
+          trControl = trainControl(method = "repeatedcv", number = 10))
+  })
+  
+  output$modrtsum <- renderPrint({
+    regTree()
+  })  
+  
+  output$modrt <- renderText({
+    #training RMSE
+    trainpred <- predict(regTree(), testset())
+    trainmse <- postResample(trainpred, trainset()$Count)[[1]]
+    #testing RMSE
+    testpred <- predict(regTree(), trainset())
+    testmse <- postResample(testpred, testset()$Count)[[1]]
+    
+    paste0("The training set RMSE is ", round(trainmse,2) , " and the testing set RMSE is ", round(testmse,2))
+  })
+  
+  #Model Fitting - Model Fitting Random Forest
+  rforest <- eventReactive(input$fit, {
+    trainset() %>% select(Count, input$rf)
+  })
+  
+  #Random forest
+  randForest <- reactive({
+    train(Count ~ ., 
+          data = rforest(),
+          method = "rf",
+          preProcess = c("center", "scale"),
+          trControl = trainControl(method = "repeatedcv", number = 10))
+  })
+  
+  output$modrfsum <- renderPrint({
+    randForest()
+  })
+  
+  output$modrf <- renderText({
+    #training MSE
+    trainpred <- predict(randForest(), trainset())
+    trainmse <- postResample(trainpred, trainset()$Count)[[1]]
+    #testing MSE
+    testpred <- predict(randForest(), testset())
+    testmse <- postResample(testpred, testset()$Count)[[1]]
+    
+    paste0("The training set RMSE is ", round(trainmse,2) , " and the testing set RMSE is ", round(testmse,2))
+  })
+  
+  #Modeling page - Prediction
+  output$prediction <- renderPrint({
+    df <- data.frame(Hour = input$hr, Temperature = input$temp, Humidity = input$humid,
+                     WindSpeed = input$wind, Visibility = input$vis, DewPoint = input$dew, 
+                     SolarRadiation = input$solar, Rainfall = input$rain, Snowfall = input$snow, 
+                     Seasons = input$season, Holiday = input$holiday, FunctioningDay = input$day)
+    
+    df
+    #linearModel<-lm(meanValuesHeatingPower ~ meanValuesOutsideTemperature, data = df)
+    
+    #pred<-predict(linearModel, data.frame(meanValuesOutsideTemperature = c(1)))
+    #print(pred)
+  })
 })
