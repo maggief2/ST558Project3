@@ -30,59 +30,73 @@ shinyUI(
       ),
       
       tabPanel("Data", fluidPage(
-        #filter rows by season
-        selectInput("season", "Select a season or all seasons", 
-                    list("All", "Winter", "Spring", "Summer", "Autumn")),
+        #Spinning circle when page is loading
+        add_busy_spinner(spin = "fading-circle"),
         
-        #select columns by category 
-        selectInput("col", "Select all columns or by category",
-                    list("Both", "Weather", "Time")),
+        fluidRow(
+          column(3, 
+                 #filter rows by season
+                 selectInput("season", "Select all seasons or a season", 
+                             list("All", "Winter", "Spring", "Summer", "Autumn"))), 
+          column (4, 
+                  #select columns by category 
+                  selectInput("col", "Select all columns or by category",
+                              list("All", "Weather", "Time"))
+                 )
+        ),
         
         #Download 
-        downloadButton("downloadData", "Download"),
+        downloadButton("downloadData", "Download Data"),
         
         #Table outputted
         tableOutput("table")
       )),
       
       tabPanel("Data Exploration", fluidPage(
-                 #Sidebar with a slider input for number of bins
-                 sidebarLayout(
-                   sidebarPanel(
-                     h3("Select the variable of interest"),
-                     
-                     radioButtons("qualquant", h4("What kind of variable?"), 
-                                  c("Qualitative", "Quantitative")),
-                     
-                     conditionalPanel(
-                       condition = "input.qualquant == 'Qualitative'",
-                       selectInput("qual", "Variable", 
-                                   list("Hour", "Seasons", "Holiday", "FunctioningDay")),
-                       selectInput("qualplot", "Type of Plot", c("Bar graph", "Box plot")),
-                       selectInput("qualsum", "Type of Summary", c("Frequency"))
-                     ),
-
-                     conditionalPanel(
-                       condition = "input.qualquant == 'Quantitative'",
-                       selectInput("quant", "Variable", 
-                                   list("Temperature", "Humidity", "WindSpeed", "Visibility", 
-                                        "DewPoint", "SolarRadiation", "Rainfall", "Snowfall")),
-                       selectInput("quantplot", "Type of Plot", c("Histogram", "Scatterplot")),
-                       selectInput("quantsum", "Type of Summary", 
-                                   c("Mean and Standard Deviation", "Correlation with Count", 
-                                     "Five Number Summary"))
-                     ),
-                     
-                     #Download Plot
-                     downloadButton('downloadPlot', 'Download Plot')
-                   ),
-                   # Show outputs
-                   mainPanel(
-                     #plotOutput("plot"),
-                     plotlyOutput("plot"),
-                     tableOutput("sum")
-                   )
-                 )
+        #Spinning circle when page is loading
+        add_busy_spinner(spin = "fading-circle"),
+        
+        #Sidebar with a slider input for number of bins
+        sidebarLayout(
+          sidebarPanel(
+            h3("Select the variable of interest"),
+            
+            #Filter for column
+            radioButtons("qualquant", h4("What kind of variable?"), 
+                         c("Qualitative", "Quantitative")),
+            
+            conditionalPanel(
+              condition = "input.qualquant == 'Qualitative'",
+              selectInput("qual", "Variable", 
+                          list("Hour", "Seasons", "Holiday", "FunctioningDay")),
+              selectInput("qualplot", "Type of Plot", c("Bar graph", "Box plot")),
+              selectInput("qualsum", "Type of Summary", c("Frequency"))
+            ),
+            
+            conditionalPanel(
+              condition = "input.qualquant == 'Quantitative'",
+              selectInput("quant", "Variable", 
+                          list("Temperature", "Humidity", "WindSpeed", "Visibility", 
+                               "DewPoint", "SolarRadiation", "Rainfall", "Snowfall")),
+              selectInput("quantplot", "Type of Plot", c("Histogram", "Scatterplot")),
+              selectInput("quantsum", "Type of Summary", 
+                          c("Mean and Standard Deviation", "Correlation with Count", 
+                            "Five Number Summary"))
+            ),
+            
+            #Filter rows
+            sliderInput("bikes", label = "Subset data by range for Count", min = 0, 
+                        max = 3556, value = c(0, 3556)),
+            
+            #Download Plot
+            downloadButton('downloadPlot', 'Download Plot')
+          ),
+          # Show outputs
+          mainPanel(
+            plotlyOutput("plot"),
+            tableOutput("sum")
+          )
+        )
                  )),
       
       tabPanel("Modeling", tabsetPanel(
@@ -98,60 +112,71 @@ shinyUI(
                  h4("The random forest model is similar in concept to the regression trees, where the data would split into multiple branches. However random forest models reduce the overfitting issue that is seen in regression trees. It does so by using a random sample of predictors variables from the sample and building the tree. Then the process repeatedly many times using bootstrap samples of the data. Then we predict the values using the outputted trees by averaging the outcome from each tree. However, this process takes a longer time because of the tree generating process and it is less interpretable because the outcome is the average of the trees that were made. ")
                  ),
         
-        tabPanel("Model Fitting",
-                 h4("Step 1. Select the proportion of the data that will be randomly sampled for the training data set"),
-                 sliderInput("split", "Select the Proportion",
-                             min = 0.1, max = 0.9, value = 0.5, step = 0.01),
-                 textOutput("sample"),
-                 br(),
-                 
-                 h4("Step 2. Select settings and variables for the models"),
-                 #MLR
-                 h5(strong("Multiple Linear Regression:")),
-                 checkboxGroupInput("mlr", "Variable(s)",
-                                    c("Hour", "Temperature", "Humidity", "WindSpeed", 
-                                      "Visibility", "DewPoint", "SolarRadiation", "Rainfall", 
-                                      "Snowfall", "Seasons", "Holiday", "FunctioningDay"), 
-                                    inline = TRUE),
-                 radioButtons("mlrcv", "Method", c("repeatedcv", "cv"), inline = TRUE),
-                 sliderInput("mlrfolds", "Number of folds", min = 5, max = 10, value = 5, step = 1),
-                 
-                 #Regress Tree
-                 h5(strong("Regression Tree:")),
-                 checkboxGroupInput("tree", "Variable(s)",
-                                    c("Hour", "Temperature", "Humidity", "WindSpeed", 
-                                      "Visibility", "DewPoint", "SolarRadiation", "Rainfall", 
-                                      "Snowfall", "Seasons", "Holiday", "FunctioningDay"), 
-                                    inline = TRUE),
-                 radioButtons("treecv", "Method", c("repeatedcv", "cv"), inline = TRUE),
-                 sliderInput("treefolds", "Number of folds", min = 5, max = 10, value = 5, step = 1),
-                 
-                 #Rand Forest
-                 h5(strong("Random Forest:")),
-                 checkboxGroupInput("rf", "Variable(s)",
-                                    c("Hour", "Temperature", "Humidity", "WindSpeed", 
-                                      "Visibility", "DewPoint", "SolarRadiation", "Rainfall", 
-                                      "Snowfall", "Seasons", "Holiday", "FunctioningDay"), 
-                                    inline = TRUE),
-                 radioButtons("rfcv", "Method", c("repeatedcv", "cv"), inline = TRUE),
-                 sliderInput("rffolds", "Number of folds", min = 5, max = 10, value = 5, step = 1),
-                 br(),
-                 
-                 h4("Step 3. Fit the models and compare"),
-                 actionButton("fit", "Press to fit the three models"),
-                 
-                 h5(strong("Multiple Linear Regression:")),
-                 verbatimTextOutput("modmlrsum"),
-                 textOutput("modmlr"),
-                 
-                 h5(strong("Regression Tree:")),
-                 verbatimTextOutput("modrtsum"),
-                 textOutput("modrt"),
-                 
-                 h5(strong("Random Forest:")),
-                 verbatimTextOutput("modrfsum"),
-                 textOutput("modrf")
-                 ),
+        tabPanel("Model Fitting", fluidPage(
+          h4("Step 1. Select the proportion of the data that will be randomly sampled for the training data set"),
+          sliderInput("split", "Select the Proportion",
+                      min = 0.1, max = 0.9, value = 0.5, step = 0.01),
+          textOutput("sample"),
+          br(),
+          
+          h4("Step 2. Select settings and variables for the models"),
+          fluidRow(
+            column(4, #MLR
+                   h5(strong("Multiple Linear Regression:")),
+                   checkboxGroupInput("mlr", "Variable(s)",
+                                      c("Hour", "Temperature", "Humidity", "WindSpeed", 
+                                        "Visibility", "DewPoint", "SolarRadiation", "Rainfall", 
+                                        "Snowfall", "Seasons", "Holiday", "FunctioningDay"), 
+                                      inline = TRUE),
+                   radioButtons("mlrcv", "Method", c("repeatedcv", "cv"), inline = TRUE),
+                   sliderInput("mlrfolds", "Number of folds", min = 5, max = 10, 
+                               value = 5, step = 1)),
+            column(4, #Regress Tree
+                   h5(strong("Regression Tree:")),
+                   checkboxGroupInput("tree", "Variable(s)",
+                                      c("Hour", "Temperature", "Humidity", "WindSpeed", 
+                                        "Visibility", "DewPoint", "SolarRadiation", "Rainfall", 
+                                        "Snowfall", "Seasons", "Holiday", "FunctioningDay"), 
+                                      inline = TRUE),
+                   radioButtons("treecv", "Method", c("repeatedcv", "cv"), inline = TRUE),
+                   sliderInput("treefolds", "Number of folds", min = 5, max = 10, 
+                               value = 5, step = 1)), 
+            column(4, #Rand Forest
+                   h5(strong("Random Forest:")),
+                   checkboxGroupInput("rf", "Variable(s)",
+                                      c("Hour", "Temperature", "Humidity", "WindSpeed", 
+                                        "Visibility", "DewPoint", "SolarRadiation", "Rainfall", 
+                                        "Snowfall", "Seasons", "Holiday", "FunctioningDay"), 
+                                      inline = TRUE),
+                   radioButtons("rfcv", "Method", c("repeatedcv", "cv"), inline = TRUE),
+                   sliderInput("rffolds", "Number of folds", min = 5, max = 10, 
+                               value = 5, step = 1))
+          )
+        ),
+        h4("Step 3. Fit the models and compare"),
+        
+        #Select this when all three models are chosen, will activate change in action button
+        checkboxInput("select3", "Check when variables for all three models have been selected",
+                      width = "100%"),
+        
+        #This action button updates to specify that the models can be fit
+        actionButton("fit", "Select variables before clicking"),
+        
+        h5(strong("Multiple Linear Regression:")),
+        verbatimTextOutput("modmlrsum"),
+        textOutput("modmlr"),
+        
+        h5(strong("Regression Tree:")),
+        verbatimTextOutput("modrtsum"),
+        textOutput("modrt"),
+        
+        h5(strong("Random Forest:")),
+        verbatimTextOutput("modrfsum"),
+        textOutput("modrf"),
+        
+        #Spinning circle when page is loading
+        add_busy_spinner(spin = "fading-circle")
+        ),
         
         tabPanel("Prediction",
                  radioButtons("model", h4("Model selection"),

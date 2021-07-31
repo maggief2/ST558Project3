@@ -26,7 +26,7 @@ shinyServer(function(input, output, session) {
     
     #filter columns
     col <- input$col
-    if (col == "Both"){
+    if (col == "All"){
       tab <- data 
     } else {
       if (col == "Weather"){
@@ -45,6 +45,7 @@ shinyServer(function(input, output, session) {
   })
   
   #Data page - download button
+  
   output$downloadData <- downloadHandler(
     filename = function() {
       paste0("data", input$season, input$col, ".csv")
@@ -59,7 +60,8 @@ shinyServer(function(input, output, session) {
     #For qualitative data
     if (input$qualquant == "Qualitative"){
       #subset data
-      new <- SeoulBike[, c("Count", input$qual)]
+      new <- SeoulBike %>% filter(Count %in% (input$bikes[1]:input$bikes[2])) %>% 
+        select(Count, input$qual)
       g <- ggplot(new, aes(x = .data[[input$qual]]))
       #Bar graph
       if (input$qualplot == "Bar graph"){
@@ -70,7 +72,8 @@ shinyServer(function(input, output, session) {
       }
       #For quantitative
     } else {
-      new <- SeoulBike %>% select(Count, input$quant)
+      new <- SeoulBike %>% filter(Count %in% (input$bikes[1]:input$bikes[2])) %>% 
+        select(Count, input$quant)
       g <- ggplot(new, aes(x = .data[[input$quant]]))
       if (input$quantplot == "Histogram"){
         g + geom_histogram(bins = 30)
@@ -98,17 +101,20 @@ shinyServer(function(input, output, session) {
   output$sum <- renderTable({
     #For qualitative data
     if (input$qualquant == "Qualitative"){
-      val <- SeoulBike[,input$qual]
+      val <- SeoulBike %>% filter(Count %in% (input$bikes[1]:input$bikes[2])) %>% 
+        select(input$qual)
       tab <- as.data.frame(table(val))
       colnames(tab) <- c(input$qual, "Frequency")
       tab
       #For quantitative data
     } else {
-      val <- SeoulBike[,input$quant]
+      val <- SeoulBike %>% filter(Count %in% (input$bikes[1]:input$bikes[2])) %>% 
+        select(input$quant)
       if (input$quantsum == "Five Number Summary"){
         summary(val)[-4]
       } else {
-        val <- SeoulBike[[input$quant]]
+        val <- val <- SeoulBike %>% filter(Count %in% (input$bikes[1]:input$bikes[2])) %>% 
+          select(input$quant)
         if (input$quantsum == "Mean and Standard Deviation"){
           tab <- data.frame(round(mean(val), 4), round(sd(val), 4))
           colnames(tab) <- c("Mean", "Standard Deviation")
@@ -120,8 +126,7 @@ shinyServer(function(input, output, session) {
     }
   })
   
-  #Modeling page 
-  #Text 
+  #Modeling page - MLR model
   output$ex2 <- renderUI({
     withMathJax(
       helpText('Model $$ Y = \\beta_0+ \\beta_1 X_1 + ... + \\beta_p X_p$$')
@@ -223,6 +228,15 @@ shinyServer(function(input, output, session) {
     testmse <- postResample(testpred, testset()$Count)[[1]]
     
     paste0("The training set RMSE is ", round(trainmse,2) , " and the testing set RMSE is ", round(testmse,2))
+  })
+  
+  #Modeling Fitting update action button
+  observe({
+    if (input$select3 == 1) {
+      updateActionButton(session, "fit", label = "Press to fit the three models")
+    } else {
+      updateActionButton(session, "fit", label = "Select variables before clicking")
+    }
   })
   
   #Modeling page - Prediction
