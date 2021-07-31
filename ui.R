@@ -1,5 +1,7 @@
-library(shiny)
+
 library(plotly)
+library(shiny)
+library(shinybusy)
 
 # Define UI for application that draws a histogram
 shinyUI(
@@ -10,21 +12,21 @@ shinyUI(
                
                #Purpose of App
                h3("Purpose of the App"),
-               h4("This app will allow the user to explore and model the Seoul bike sharing demand."),
+               h4("This is an interactive app that allows the user to explore, model, and predict the Seoul bike sharing demand."),
                br(),
                
                #Discussion of data and its source
                h3("The Data"),
                h4("The data comes from the UCI machine learning repository and was labeled ",
-               a("Seoul Bike Sharing Demand.", href = "https://archive.ics.uci.edu/ml/datasets/Seoul+Bike+Sharing+Demand"), " The variable of interest is the Rented Bike Count, because it is important that the bikes are available and accessible to the public at the right time to reduce waiting time. The remaining 13 varables in this dataset are: Date, Hour, Temperature, Humidity, Wind speed, Visibility, Dew Point Temperature, Solar Radiation, Rainfall, Snowfall, Seasons, Holiday, and Functioning Day."
+               a("Seoul Bike Sharing Demand.", href = "https://archive.ics.uci.edu/ml/datasets/Seoul+Bike+Sharing+Demand"), " The response variable of interest is the Rented Bike Count. This is because it is important for the company to know the availability of bikes so the public can access them without waiting. The remaining 13 varables in this dataset fall into two categories that I have dubbed: Time or Weather. For the time variables there is the Date, Hour, Seasons, Holiday, and Functioning Day. The weather variables include the Temperature (Celsius), Humidity (%), Wind speed (m/s), Visibility (10m), Dew Point Temperature (Celsius), Solar Radiation (MJ/m2), Rainfall (mm), and Snowfall (cm)."
                ),
                br(),
                
                #Purpose of each tab
                h3("Tabs"),
-               h4("The Data page will allow the user to have an initial look at the data set, subset it, and save the full data set as a file."),
-               h4("The Data Exploration page will allow the user to explore the data. The user can change and filter the variables; create numerical and graphical summaries; and download the plots."),
-               h4("The Modeling page will fit three supervised learning models. There will be a multiple linear regression model, regression tree, and a random forest model. The three tabs within the page will give information about the modeling approaches, fit the model, and predict the response.")
+               h4("The Data page will allow the user to have an initial look at the data set, subset it, and save the data set as a file."),
+               h4("The Data Exploration page will allow the user to visualize the data and view summary statistics. The user can change and filter the variables; create numerical and graphical summaries; and download the plots. The graphs created are also downloadable, however by doing so they will lose their interactive abilities."),
+               h4("The Modeling page will fit three supervised learning models: multiple linear regression, regression tree, and random forest. The first of the three tabs, labeled Modeling Info, provides information about the three models. The second tab, labeled Model Fitting, allows the user to fit the model using variables of their choice. The third tab, labeled Prediction, allows the user to select one of the three models; select predictor variables and input values for each variable; and predict the response.")
       ),
       
       tabPanel("Data", fluidPage(
@@ -67,8 +69,8 @@ shinyUI(
                                         "DewPoint", "SolarRadiation", "Rainfall", "Snowfall")),
                        selectInput("quantplot", "Type of Plot", c("Histogram", "Scatterplot")),
                        selectInput("quantsum", "Type of Summary", 
-                                   c("Five Number Summary", "Mean and Standard Deviation",
-                                     "Correlation with Count"))
+                                   c("Mean and Standard Deviation", "Correlation with Count", 
+                                     "Five Number Summary"))
                      ),
                      
                      #Download Plot
@@ -85,14 +87,15 @@ shinyUI(
       
       tabPanel("Modeling", tabsetPanel(
         tabPanel("Modeling Info",
-                 h3("Linear Regression Model"),
-                 h4("explain benefits/drawbacks"),
+                 h3("Multiple Linear Regression"),
+                 uiOutput('ex2'),
+                 h4("The multiple linear regression model estimates the relationship between several predictor variables and one response variable. This model is relatively easy to interpret. The intercept, ",  HTML(paste0("&beta;",tags$sub("0"))), ", is interpreted as the response when all predictors are zero. The remaining", HTML(paste0("&beta;",tags$sub("i"))), "s is the estimated increase in the predictor variable given all other predictor variables are held constant.  The output from this model also allows us to see the relevance or importance of since we also obtain the standard error, t value, and p-values. The downside of this model would be the assumption of linearity, which makes it worse for data that is truly complex."),
                  
                  h3("Regression Tree"),
-                 h4("explain benefits/drawbacks"),
+                 h4("The regression tree builds a model in a tree-like structure. The full dataset splits into two branches based on a certain criterion of a predictor variable in the data. The following branches then split, if the stop criteria are not met, and this process continues until a tree is formed. The endpoints predict the value of the response variable, using the decision tree that was created. This form of modeling is conceptually easy to understand and easy to visualize. It can handle non-linear models well because it automatically handles interactions. However, small changes in the data, or in our case the training data set, can cause large changes in the structure of the decision tree. This is because the model generally overfits to the training set, making the variance large, so it may not perform well on the testing data."),
                  
                  h3("Random Forest Model"),
-                 h4("explain benefits/drawbacks")
+                 h4("The random forest model is similar in concept to the regression trees, where the data would split into multiple branches. However random forest models reduce the overfitting issue that is seen in regression trees. It does so by using a random sample of predictors variables from the sample and building the tree. Then the process repeatedly many times using bootstrap samples of the data. Then we predict the values using the outputted trees by averaging the outcome from each tree. However, this process takes a longer time because of the tree generating process and it is less interpretable because the outcome is the average of the trees that were made. ")
                  ),
         
         tabPanel("Model Fitting",
@@ -102,22 +105,36 @@ shinyUI(
                  textOutput("sample"),
                  br(),
                  
-                 h4("Step 2. Select variables for the models"),
-                 checkboxGroupInput("mlr", "Multiple Linear Regression Variable(s):",
+                 h4("Step 2. Select settings and variables for the models"),
+                 #MLR
+                 h5(strong("Multiple Linear Regression:")),
+                 checkboxGroupInput("mlr", "Variable(s)",
                                     c("Hour", "Temperature", "Humidity", "WindSpeed", 
                                       "Visibility", "DewPoint", "SolarRadiation", "Rainfall", 
                                       "Snowfall", "Seasons", "Holiday", "FunctioningDay"), 
                                     inline = TRUE),
-                 checkboxGroupInput("tree", "Regression Tree Variable(s):",
+                 radioButtons("mlrcv", "Method", c("repeatedcv", "cv"), inline = TRUE),
+                 sliderInput("mlrfolds", "Number of folds", min = 5, max = 10, value = 5, step = 1),
+                 
+                 #Regress Tree
+                 h5(strong("Regression Tree:")),
+                 checkboxGroupInput("tree", "Variable(s)",
                                     c("Hour", "Temperature", "Humidity", "WindSpeed", 
                                       "Visibility", "DewPoint", "SolarRadiation", "Rainfall", 
                                       "Snowfall", "Seasons", "Holiday", "FunctioningDay"), 
                                     inline = TRUE),
-                 checkboxGroupInput("rf", "Random Forest Variable(s):",
+                 radioButtons("treecv", "Method", c("repeatedcv", "cv"), inline = TRUE),
+                 sliderInput("treefolds", "Number of folds", min = 5, max = 10, value = 5, step = 1),
+                 
+                 #Rand Forest
+                 h5(strong("Random Forest:")),
+                 checkboxGroupInput("rf", "Variable(s)",
                                     c("Hour", "Temperature", "Humidity", "WindSpeed", 
                                       "Visibility", "DewPoint", "SolarRadiation", "Rainfall", 
                                       "Snowfall", "Seasons", "Holiday", "FunctioningDay"), 
                                     inline = TRUE),
+                 radioButtons("rfcv", "Method", c("repeatedcv", "cv"), inline = TRUE),
+                 sliderInput("rffolds", "Number of folds", min = 5, max = 10, value = 5, step = 1),
                  br(),
                  
                  h4("Step 3. Fit the models and compare"),
@@ -193,7 +210,7 @@ shinyUI(
                  ),
                  conditionalPanel(
                    condition = "input.predvars.includes('Seasons')",
-                   selectInput("season", "Season",
+                   selectInput("season4", "Season",
                                c("Winter", "Spring", "Summer", "Autumn"))
                  ),
                  conditionalPanel(
@@ -207,9 +224,8 @@ shinyUI(
                                c("Yes", "No"))
                  ),
                  
-                 #textOutput("prediction")
                  actionButton("predict", "Predict"),
-                 verbatimTextOutput("prediction")
+                 textOutput("prediction")
         )
       ))
 ))

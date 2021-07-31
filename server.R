@@ -36,7 +36,7 @@ shinyServer(function(input, output, session) {
         tab <- data %>% select("Count", "Date", "Hour", "Seasons", "Holiday", "FunctioningDay")
       }
     }
-    sub <- as.data.frame(tab) 
+    as.data.frame(tab) 
   })
   
   #Data page - table
@@ -121,6 +121,13 @@ shinyServer(function(input, output, session) {
   })
   
   #Modeling page 
+  #Text 
+  output$ex2 <- renderUI({
+    withMathJax(
+      helpText('Model $$ Y = \\beta_0+ \\beta_1 X_1 + ... + \\beta_p X_p$$')
+    )
+  })
+  
   #Model Fitting - Training and Testing sets
   n <- reactive({round(nrow(SeoulBike)*input$split)})
   trainIndex <- reactive({sample(nrow(SeoulBike), n())})
@@ -142,7 +149,7 @@ shinyServer(function(input, output, session) {
           data = mlr(),
           method = "lm",
           preProcess = c("center","scale"),
-          trControl = trainControl(method = "cv", number = 10))
+          trControl = trainControl(method = input$mlrcv, number = input$mlrfolds))
   })
   
   output$modmlrsum <- renderPrint({
@@ -171,7 +178,7 @@ shinyServer(function(input, output, session) {
           data = rtree(),
           method = "rpart",
           preProcess = c("center", "scale"),
-          trControl = trainControl(method = "repeatedcv", number = 10))
+          trControl = trainControl(method = input$treecv, input$treefolds))
   })
   
   output$modrtsum <- renderPrint({
@@ -200,7 +207,7 @@ shinyServer(function(input, output, session) {
           data = rforest(),
           method = "rf",
           preProcess = c("center", "scale"),
-          trControl = trainControl(method = "repeatedcv", number = 10))
+          trControl = trainControl(method = input$rfcv, number = input$rffolds))
   })
   
   output$modrfsum <- renderPrint({
@@ -219,16 +226,33 @@ shinyServer(function(input, output, session) {
   })
   
   #Modeling page - Prediction
+  subdata <- eventReactive(input$predict, {
+    trainset() %>% select(Count, input$predvars)
+  })
+  
   output$prediction <- renderPrint({
     df <- data.frame(Hour = input$hr, Temperature = input$temp, Humidity = input$humid,
                      WindSpeed = input$wind, Visibility = input$vis, DewPoint = input$dew, 
                      SolarRadiation = input$solar, Rainfall = input$rain, Snowfall = input$snow, 
-                     Seasons = input$season, Holiday = input$holiday, FunctioningDay = input$day)
+                     Seasons = input$season4, Holiday = input$holiday, FunctioningDay = input$day)
     
-    df
-    #linearModel<-lm(meanValuesHeatingPower ~ meanValuesOutsideTemperature, data = df)
+    if (input$model == "Multiple Linear Regression"){
+      modmethod <- "lm"
+    } else {
+      if (input$model == "Regression Tree"){
+        modmethod <- "rpart"
+      } else {
+        modmethod = "rf"
+      }
+    }
     
-    #pred<-predict(linearModel, data.frame(meanValuesOutsideTemperature = c(1)))
-    #print(pred)
+    model <- train(Count ~ .,
+                   data = subdata(),
+                   method = modmethod,
+                   preProcess = c("center", "scale"),
+                   trControl = trainControl(method = "repeatedcv", number = 10))
+    
+    pred <- predict(model, df)
+    paste0("The predicted value of Bike Count is ", round(pred))
   })
 })
