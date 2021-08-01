@@ -111,16 +111,18 @@ shinyServer(function(input, output, session) {
       val <- SeoulBike %>% filter(Count %in% (input$bikes[1]:input$bikes[2])) %>% 
         select(input$quant)
       if (input$quantsum == "Five Number Summary"){
-        summary(val)[-4]
+        summary(val[1])[-4]
       } else {
-        val <- val <- SeoulBike %>% filter(Count %in% (input$bikes[1]:input$bikes[2])) %>% 
-          select(input$quant)
         if (input$quantsum == "Mean and Standard Deviation"){
-          tab <- data.frame(round(mean(val), 4), round(sd(val), 4))
+          tab <- data.frame(round(mean(val[[1]]), 4), round(sd(val[[1]]), 4))
           colnames(tab) <- c("Mean", "Standard Deviation")
           tab
         } else {
-          data.frame("Correlation" = cor(val, SeoulBike$Count))
+          val <- SeoulBike %>% filter(Count %in% (input$bikes[1]:input$bikes[2])) %>% 
+            select(input$quant, Count) 
+          tab <- data.frame(cor(val[1], val[2]))
+          colnames(tab) <- c("Correlation")
+          tab
         }
       }
     }

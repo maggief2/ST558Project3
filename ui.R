@@ -12,21 +12,21 @@ shinyUI(
                
                #Purpose of App
                h3("Purpose of the App"),
-               h4("This is an interactive app that allows the user to explore, model, and predict the Seoul bike sharing demand."),
+               h4("This is an interactive app that allows the user to explore, model, and predict the Seoul bike sharing demand data."),
                br(),
                
                #Discussion of data and its source
                h3("The Data"),
                h4("The data comes from the UCI machine learning repository and was labeled ",
-               a("Seoul Bike Sharing Demand.", href = "https://archive.ics.uci.edu/ml/datasets/Seoul+Bike+Sharing+Demand"), " The response variable of interest is the Rented Bike Count. This is because it is important for the company to know the availability of bikes so the public can access them without waiting. The remaining 13 varables in this dataset fall into two categories that I have dubbed: Time or Weather. For the time variables there is the Date, Hour, Seasons, Holiday, and Functioning Day. The weather variables include the Temperature (Celsius), Humidity (%), Wind speed (m/s), Visibility (10m), Dew Point Temperature (Celsius), Solar Radiation (MJ/m2), Rainfall (mm), and Snowfall (cm)."
+               a("Seoul Bike Sharing Demand.", href = "https://archive.ics.uci.edu/ml/datasets/Seoul+Bike+Sharing+Demand"), " The response variable of interest is the Rented Bike Count. This is because it is important for the company to know the availability of bikes so the public can access them without waiting. The remaining 13 varables in this data set fall into two categories that I have dubbed time and weather. Time happens to correspond with the qualitative variables and weather corresponds to the quantitative variables. Please note the variable Date was removed from the analysis because we are not running time series or longitudinal models; however it is still included in the data set to download. For the time or quantitative variables variables there is the Hour, Seasons, Holiday, and Functioning Day. The weather or qualitative variables include the Temperature (Celsius), Humidity (%), Wind speed (m/s), Visibility (10m), Dew Point Temperature (Celsius), Solar Radiation (MJ/m2), Rainfall (mm), and Snowfall (cm)."
                ),
                br(),
                
                #Purpose of each tab
                h3("Tabs"),
-               h4("The Data page will allow the user to have an initial look at the data set, subset it, and save the data set as a file."),
-               h4("The Data Exploration page will allow the user to visualize the data and view summary statistics. The user can change and filter the variables; create numerical and graphical summaries; and download the plots. The graphs created are also downloadable, however by doing so they will lose their interactive abilities."),
-               h4("The Modeling page will fit three supervised learning models: multiple linear regression, regression tree, and random forest. The first of the three tabs, labeled Modeling Info, provides information about the three models. The second tab, labeled Model Fitting, allows the user to fit the model using variables of their choice. The third tab, labeled Prediction, allows the user to select one of the three models; select predictor variables and input values for each variable; and predict the response.")
+               h4("The Data page will allow the user to have an initial look at the data set. The user can also subset rows by season and/or subset the columns by predictor category. Finally, the full data set or subsetted data can be saved as a CSV file."),
+               h4("The Data Exploration page will allow the user to visualize the data and view summary statistics. The user can change and filter the variables by Count when creating numerical and graphical summaries by variable type. The graphs that are formed are downloadable, however by doing so they will lose their interactive abilities."),
+               h4("The Modeling page contains three tabs. The first of the three tabs, labeled Modeling Info, provides information about the the three supervised learning models we will use: multiple linear regression, regression tree, and random forest. The second tab, labeled Model Fitting, allows the user to fit the model using variables of their choice. The third tab, labeled Prediction, allows the user to select one of the three models; select predictor variables and input values for each variable; and predict the response.")
       ),
       
       tabPanel("Data", fluidPage(
@@ -80,8 +80,8 @@ shinyUI(
                                "DewPoint", "SolarRadiation", "Rainfall", "Snowfall")),
               selectInput("quantplot", "Type of Plot", c("Histogram", "Scatterplot")),
               selectInput("quantsum", "Type of Summary", 
-                          c("Mean and Standard Deviation", "Correlation with Count", 
-                            "Five Number Summary"))
+                          c("Mean and Standard Deviation", "Five Number Summary", 
+                            "Correlation with Count"))
             ),
             
             #Filter rows
