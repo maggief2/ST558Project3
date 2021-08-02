@@ -8,19 +8,17 @@ The purpose of this app is to allow users to explore the [Seoul Bike Sharing Dem
 
 The packages needed to run the R code are: 
 
-```{r}
-library(caret)
-library(DT)
-library(plotly)
-library(shiny)
-library(shinybusy) 
-library(tidyverse)
-```
++ caret
++ DT
++ plotly
++ shiny
++ shinybusy
++ tidyverse
 
 ### A Quick way to load all the packages
 
 ```{r}
-invisible(lapply(c(“caret”, “DT”, “plotly”, “shiny”, “shinybusy”, “tidyverse”), library, character.only = TRUE))
+invisible(lapply(c("caret", "DT", "plotly", "shiny", "shinybusy", "tidyverse"), library, character.only = TRUE))
 ```
 
 ## Run the App
