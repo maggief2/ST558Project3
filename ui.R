@@ -29,10 +29,12 @@ shinyUI(
                h4("The Modeling page contains three tabs. The first of the three tabs, labeled Modeling Info, provides information about the the three supervised learning models we will use: multiple linear regression, regression tree, and random forest. The second tab, labeled Model Fitting, allows the user to fit the model using variables of their choice. The third tab, labeled Prediction, allows the user to select one of the three models; select predictor variables and input values for each variable; and predict the response.")
       ),
       
+      #Data page
       tabPanel("Data", fluidPage(
         #Spinning circle when page is loading
         add_busy_spinner(spin = "fading-circle"),
         
+        #Subset dataset
         fluidRow(
           column(3, 
                  #filter rows by season
@@ -52,33 +54,47 @@ shinyUI(
         tableOutput("table")
       )),
       
+      #Data Exploration page
       tabPanel("Data Exploration", fluidPage(
         #Spinning circle when page is loading
         add_busy_spinner(spin = "fading-circle"),
         
-        #Sidebar with a slider input for number of bins
         sidebarLayout(
           sidebarPanel(
             h3("Select the variable of interest"),
             
-            #Filter for column
+            #Choice of variable type
             radioButtons("qualquant", h4("What kind of variable?"), 
                          c("Qualitative", "Quantitative")),
             
+            #If qualitative data is chosen
             conditionalPanel(
               condition = "input.qualquant == 'Qualitative'",
+              
+              #Choice of variable
               selectInput("qual", "Variable", 
                           list("Hour", "Seasons", "Holiday", "FunctioningDay")),
+              
+              #Choice of plot
               selectInput("qualplot", "Type of Plot", c("Bar graph", "Box plot")),
-              selectInput("qualsum", "Type of Summary", c("Frequency"))
+              
+              #Choice of summary
+              selectInput("qualsum", "Type of Summary", c("Count", "Proportion"))
             ),
             
+            #If quantitative data is chosen
             conditionalPanel(
               condition = "input.qualquant == 'Quantitative'",
+              
+              #Choice of variable
               selectInput("quant", "Variable", 
                           list("Temperature", "Humidity", "WindSpeed", "Visibility", 
                                "DewPoint", "SolarRadiation", "Rainfall", "Snowfall")),
+              
+              #Choice of plot
               selectInput("quantplot", "Type of Plot", c("Histogram", "Scatterplot")),
+              
+              #Choice of summary
               selectInput("quantsum", "Type of Summary", 
                           c("Mean and Standard Deviation", "Five Number Summary", 
                             "Correlation with Count"))
@@ -93,13 +109,19 @@ shinyUI(
           ),
           # Show outputs
           mainPanel(
+            #Mouse input for plot using plotly package
             plotlyOutput("plot"),
+            
+            #Table for summary stats
             tableOutput("sum")
           )
         )
                  )),
       
+      #Modeling page
       tabPanel("Modeling", tabsetPanel(
+        
+        #Modeling Info tab - detailing models
         tabPanel("Modeling Info",
                  h3("Multiple Linear Regression"),
                  uiOutput('ex2'),
@@ -112,16 +134,22 @@ shinyUI(
                  h4("The random forest model is similar in concept to the regression trees, where the data would split into multiple branches. However random forest models reduce the overfitting issue that is seen in regression trees. It does so by using a random sample of predictors variables from the sample and building the tree. Then the process repeatedly many times using bootstrap samples of the data. Then we predict the values using the outputted trees by averaging the outcome from each tree. However, this process takes a longer time because of the tree generating process and it is less interpretable because the outcome is the average of the trees that were made. ")
                  ),
         
+        #Model fitting tab
         tabPanel("Model Fitting", fluidPage(
+          
+          #Choose proportion for training set and testing set
           h4("Step 1. Select the proportion of the data that will be randomly sampled for the training data set"),
+          
           sliderInput("split", "Select the Proportion",
                       min = 0.1, max = 0.9, value = 0.5, step = 0.01),
           textOutput("sample"),
           br(),
           
+          #Choose model setting and variables
           h4("Step 2. Select settings and variables for the models"),
           fluidRow(
-            column(4, #MLR
+            column(4, 
+                   #MLR
                    h5(strong("Multiple Linear Regression:")),
                    checkboxGroupInput("mlr", "Variable(s)",
                                       c("Hour", "Temperature", "Humidity", "WindSpeed", 
@@ -131,7 +159,8 @@ shinyUI(
                    radioButtons("mlrcv", "Method", c("repeatedcv", "cv"), inline = TRUE),
                    sliderInput("mlrfolds", "Number of folds", min = 5, max = 10, 
                                value = 5, step = 1)),
-            column(4, #Regress Tree
+            column(4, 
+                   #Regression Tree
                    h5(strong("Regression Tree:")),
                    checkboxGroupInput("tree", "Variable(s)",
                                       c("Hour", "Temperature", "Humidity", "WindSpeed", 
@@ -141,7 +170,8 @@ shinyUI(
                    radioButtons("treecv", "Method", c("repeatedcv", "cv"), inline = TRUE),
                    sliderInput("treefolds", "Number of folds", min = 5, max = 10, 
                                value = 5, step = 1)), 
-            column(4, #Rand Forest
+            column(4, 
+                   #Random Forest
                    h5(strong("Random Forest:")),
                    checkboxGroupInput("rf", "Variable(s)",
                                       c("Hour", "Temperature", "Humidity", "WindSpeed", 
@@ -153,6 +183,8 @@ shinyUI(
                                value = 5, step = 1))
           )
         ),
+        
+        #Press button to fit all three models on training set
         h4("Step 3. Fit the models and compare"),
         
         #Select this when all three models are chosen, will activate change in action button
@@ -160,7 +192,7 @@ shinyUI(
                       width = "100%"),
         
         #This action button updates to specify that the models can be fit
-        actionButton("fit", "Select variables before clicking"),
+        actionButton("fit", "Select variables and click checkbox first"),
         
         h5(strong("Multiple Linear Regression:")),
         verbatimTextOutput("modmlrsum"),
@@ -178,7 +210,10 @@ shinyUI(
         add_busy_spinner(spin = "fading-circle")
         ),
         
+        #Prediction page
         tabPanel("Prediction",
+                 
+                 #Choose model to make prediction
                  radioButtons("model", h4("Model selection"),
                               c("Multiple Linear Regression", "Regression Tree", "Random Forest"),
                               inline = TRUE),
@@ -187,6 +222,8 @@ shinyUI(
                                       "Visibility", "DewPoint", "SolarRadiation", "Rainfall", 
                                       "Snowfall", "Seasons", "Holiday", "FunctioningDay"), 
                                     inline = TRUE),
+                 
+                 #Variables chosen will appear for input
                  conditionalPanel(
                    condition = "input.predvars.includes('Hour')",
                    selectInput("hr", "Hour",
@@ -249,6 +286,7 @@ shinyUI(
                                c("Yes", "No"))
                  ),
                  
+                 #Press button to fit
                  actionButton("predict", "Predict"),
                  textOutput("prediction")
         )

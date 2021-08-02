@@ -5,15 +5,18 @@ library(plotly)
 library(shiny)
 library(tidyverse)
 
+#Reading in dataset
 SeoulBike <- read_csv("SeoulBikeData.csv")
+#Renaming the columns for easier access
 colnames(SeoulBike) <- c("Date", "Count", "Hour", "Temperature", "Humidity",
                          "WindSpeed", "Visibility", "DewPoint", "SolarRadiation", "Rainfall", 
                          "Snowfall", "Seasons", "Holiday", "FunctioningDay")
+#Changing hour to qualitative variable
 SeoulBike$Hour <- as.factor(SeoulBike$Hour)
 
-# Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
   
+  #Data page - df to scroll through
   df <- reactive({
     #filter rows
     var <- input$season
@@ -45,7 +48,6 @@ shinyServer(function(input, output, session) {
   })
   
   #Data page - download button
-  
   output$downloadData <- downloadHandler(
     filename = function() {
       paste0("data", input$season, input$col, ".csv")
@@ -55,7 +57,7 @@ shinyServer(function(input, output, session) {
     }
   )
   
-  #Data Exploration page - Plot
+  #Data Exploration page - Plots
   graph <- reactive({
     #For qualitative data
     if (input$qualquant == "Qualitative"){
@@ -63,11 +65,9 @@ shinyServer(function(input, output, session) {
       new <- SeoulBike %>% filter(Count %in% (input$bikes[1]:input$bikes[2])) %>% 
         select(Count, input$qual)
       g <- ggplot(new, aes(x = .data[[input$qual]]))
-      #Bar graph
       if (input$qualplot == "Bar graph"){
         g + geom_bar()
       } else {
-        #Box plot
         g + geom_boxplot(aes(y = Count)) 
       }
       #For quantitative
@@ -83,6 +83,7 @@ shinyServer(function(input, output, session) {
     }
   })
   
+  #Data Exploration - Plotly will utilize mouse input
   output$plot <- renderPlotly({
     graph()
   })
@@ -103,9 +104,17 @@ shinyServer(function(input, output, session) {
     if (input$qualquant == "Qualitative"){
       val <- SeoulBike %>% filter(Count %in% (input$bikes[1]:input$bikes[2])) %>% 
         select(input$qual)
-      tab <- as.data.frame(table(val))
-      colnames(tab) <- c(input$qual, "Frequency")
-      tab
+      if (input$qualsum == "Count"){
+        tab <- as.data.frame(table(val))
+        colnames(tab) <- c(input$qual, "Observations")
+        tab
+      } else {
+        tab <- table(val)
+        tab2 <- as.data.frame(prop.table(tab))
+        colnames(tab2) <- c(input$qual, "Proportion")
+        tab2
+      }
+      
       #For quantitative data
     } else {
       val <- SeoulBike %>% filter(Count %in% (input$bikes[1]:input$bikes[2])) %>% 
@@ -160,7 +169,8 @@ shinyServer(function(input, output, session) {
   })
   
   output$modmlrsum <- renderPrint({
-    summary(modmlr())
+    model <- modmlr()
+    summary(model)
   })
   
   output$modmlr <- renderText({
@@ -232,7 +242,7 @@ shinyServer(function(input, output, session) {
     paste0("The training set RMSE is ", round(trainmse,2) , " and the testing set RMSE is ", round(testmse,2))
   })
   
-  #Modeling Fitting update action button
+  #Modeling Fitting - update action button
   observe({
     if (input$select3 == 1) {
       updateActionButton(session, "fit", label = "Press to fit the three models")
@@ -246,6 +256,7 @@ shinyServer(function(input, output, session) {
     trainset() %>% select(Count, input$predvars)
   })
   
+  #Modeling page - Prediction: predcited Count output
   output$prediction <- renderPrint({
     df <- data.frame(Hour = input$hr, Temperature = input$temp, Humidity = input$humid,
                      WindSpeed = input$wind, Visibility = input$vis, DewPoint = input$dew, 
@@ -261,7 +272,6 @@ shinyServer(function(input, output, session) {
         modmethod = "rf"
       }
     }
-    
     model <- train(Count ~ .,
                    data = subdata(),
                    method = modmethod,
